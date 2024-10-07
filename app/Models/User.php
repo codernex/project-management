@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -60,6 +61,16 @@ class User extends Authenticatable
     public function assignedTasks(): BelongsToMany
     {
         return $this->belongsToMany(Task::class, 'tasks_users', 'user_id', 'task_id');
+    }
+
+    public function latestProject(): HasOne
+    {
+        $this->projects()->one()->latestOfMany();
+    }
+
+    public function latestTask():HasOne
+    {
+        return $this->tasks()->one()->latestOfMany();
     }
 
     public function invitedProjects(): BelongsToMany

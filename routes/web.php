@@ -9,7 +9,7 @@ Volt::route('/login', 'auth.login')->name('login');
 
 Route::group(['middleware' => 'auth:web'], function () {
     Volt::route('/', 'dashboard');
-    Volt::route('/projects', 'projects.index');
+    Volt::route('/projects', 'projects.index')->name('projects.index');
     Volt::route('/projects/{project}', 'project.show')->name('project.show');
     Route::get('/logout', function () {
         Auth::logout();

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\ProjectStatusEnum;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -37,4 +39,13 @@ class Project extends Model
     {
         return $this->morphMany(Comment::class, 'model');
     }
+
+    protected function status(): Attribute
+    {
+        return Attribute::make(
+            get: fn(string $value) => ucfirst($value),
+        );
+    }
+
+
 }

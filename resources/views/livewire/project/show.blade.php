@@ -94,7 +94,10 @@ new class extends Component {
         }
 
         $invitationLink = "http://localhost:8000/accept-invitation/{$this->project->id}?invitee={$this->email}";
-        InviteTeamMemberJob::dispatch($data['email'], $invitationLink, auth()->user()->name);
+
+        dispatch(
+            new InviteTeamMemberJob($data['email'], $invitationLink, auth()->user()->name)
+        );
         $this->email = '';
         $this->success('Invitation sent');
     }
@@ -117,7 +120,9 @@ new class extends Component {
         /**
          * Creating a job to the queue process email in background
          */
-        \App\Jobs\AssignUserToTask::dispatch($user, $this->task);
+        dispatch(
+            new \App\Jobs\AssignUserToTask($user, $this->task)
+        );
     }
 
     // Creating new task to the project
@@ -140,6 +145,9 @@ new class extends Component {
         $task->owner_id = Auth::user()->id;
         $task->project_id = $this->project->id;
         $task->save();
+
+        $this->project->status = \App\ProjectStatusEnum::PROGRESSING->value;
+        $this->project->save();
         $this->success('New task created');
         $this->open = false;
 
@@ -214,20 +222,12 @@ new class extends Component {
     <div class="grid grid-cols-4 gap-10">
         @foreach($project->tasks as $task)
             @can('has-access-to-task',$task)
-                <a target="_blank" href="{{$task->github_url}}">
-                    <x-card title="{{$task->name}}">
-                        <x-slot:menu>
-                            <x-button icon="o-check"/>
-                            @can('isProjectOwner',$project)
-                                @if($task->users()->count()<1)
-                                    <x-button wire:click="openTaskModal({{$task}})"
-                                              icon="o-adjustments-horizontal"/>
-                                @endif
-                            @endcan
-                        </x-slot:menu>
-                        <div class="flex items-center justify-between">
-                            <p class="font-semibold badge badge-neutral text-white">
-                                Assigned: @foreach($task->users as $user)
+                <x-card title="{{$task->name}}">
+                    <div class="flex items-center justify-between">
+                        <p class="font-semibold badge badge-neutral text-white">
+                            Assigned:
+                            @if(count($task->users))
+                                @foreach($task->users as $user)
                                     <span class="ml-2">
 
                                     @if($user->id===Auth::user()->id)
@@ -237,25 +237,41 @@ new class extends Component {
                                         @endif
                                 </span>
                                 @endforeach
-                            </p>
-                            <p @class([
+                            @else
+                                N/A
+                            @endif
+                        </p>
+                        <p @class([
     'badge font-semibold',
     'badge-accent text-white' => $task->priority === 'medium',
     'badge-success text-white' => $task->priority === 'low',
-    'badge-error text-white' => $task->priority === 'low',
+    'badge-error text-white' => $task->priority === 'high',
 
 ])>
-                                {{$task->priority}}
-                            </p>
+                            {{$task->priority}}
+                        </p>
 
 
-                        </div>
-                        <div class="mt-4">
-                            <p class="badge badge-warning font-semibold ">Due
-                                Date: {{\Carbon\Carbon::parse($task->due_date)->format('d/m/y g:i a')}}</p>
-                        </div>
-                    </x-card>
-                </a>
+                    </div>
+                    <div class="mt-4">
+                        <p class="badge badge-warning font-semibold ">Due
+                            Date: {{\Carbon\Carbon::parse($task->due_date)->format('d/m/y g:i a')}}</p>
+                    </div>
+
+                    {{--                    Task Card Footer--}}
+                    <div class="mt-4">
+                        <x-button icon="o-check"/>
+                        <a target="_blank" href="{{$task->github_url}}">
+                            <x-button icon="o-eye"/>
+                        </a>
+                        @can('isProjectOwner',$project)
+                            @if($task->users()->count()<1)
+                                <x-button wire:click="openTaskModal({{$task}})"
+                                          icon="o-adjustments-horizontal"/>
+                            @endif
+                        @endcan
+                    </div>
+                </x-card>
             @endcan
         @endforeach
 
